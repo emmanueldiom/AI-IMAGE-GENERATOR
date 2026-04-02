@@ -35,28 +35,30 @@ themeToggle.addEventListener("click", () => {
 const updateImageCard = (index, imgUrl) => {
   const card = document.getElementById(`img-card-${index}`);
   if (!card) return;
+
   card.classList.remove("loading");
   card.innerHTML = `
-        <img src="${imgUrl}" class="result-img">
-        <div class="img-overlay">
-            <a href="${imgUrl}" class="img-download-btn" download="image-${Date.now()}.png">
-                <i class="fa-solid fa-download"></i>
-            </a>
-        </div>
-    `;
+    <img src="${imgUrl}" class="result-img">
+    <div class="img-overlay">
+        <a href="${imgUrl}" class="img-download-btn" download="image-${Date.now()}.png">
+            <i class="fa-solid fa-download"></i>
+        </a>
+    </div>
+  `;
 };
 
 const showErrorOnCard = (index, message) => {
   const card = document.getElementById(`img-card-${index}`);
   if (!card) return;
+
   card.classList.remove("loading");
   card.classList.add("error");
   card.innerHTML = `
-        <div class="status-container">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            <p class="status-text">${message}</p>
-        </div>
-    `;
+    <div class="status-container">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <p class="status-text">${message}</p>
+    </div>
+  `;
 };
 
 // ================= GENERATE =================
@@ -64,20 +66,22 @@ const generateImages = async (count, promptText) => {
   generateBtn.disabled = true;
   gridGallery.innerHTML = "";
 
+  // Création des cartes loading
   for (let i = 0; i < count; i++) {
     gridGallery.innerHTML += `
-    <div class="img-card loading" id="img-card-${i}">
-        <div class="status-container">
-            <div class="spinner"></div>
-            <p class="status-text">Génération en cours...<br><small>Peut prendre 1-3 min</small></p>
-        </div>
-    </div>
-`;
+      <div class="img-card loading" id="img-card-${i}">
+          <div class="status-container">
+              <div class="spinner"></div>
+              <p class="status-text">Génération en cours...<br><small>Peut prendre 1-3 min</small></p>
+          </div>
+      </div>
+    `;
   }
 
+  // Génération images
   for (let i = 0; i < count; i++) {
     try {
-      const response = await fetch("http://localhost:3000/generate", {
+      const response = await fetch("/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: promptText }),
@@ -88,15 +92,17 @@ const generateImages = async (count, promptText) => {
         throw new Error(err.error || "Erreur serveur");
       }
 
-      // Le serveur renvoie toujours un blob image maintenant
       const blob = await response.blob();
       const imgUrl = URL.createObjectURL(blob);
+
       updateImageCard(i, imgUrl);
+
     } catch (error) {
       console.error("Erreur image", i, ":", error.message);
       showErrorOnCard(i, error.message);
     }
 
+    // délai entre générations
     if (i < count - 1) {
       await new Promise((r) => setTimeout(r, 3000));
     }
@@ -108,12 +114,15 @@ const generateImages = async (count, promptText) => {
 // ================= FORM =================
 promptForm.addEventListener("submit", (e) => {
   e.preventDefault();
+
   const prompt = promptInput.value.trim();
   const count = parseInt(countSelect.value) || 1;
+
   if (!prompt) return alert("Saisis un prompt !");
   generateImages(count, prompt);
 });
 
+// bouton suggestion prompt
 promptBtn.addEventListener("click", () => {
   promptInput.value =
     examplePrompts[Math.floor(Math.random() * examplePrompts.length)];

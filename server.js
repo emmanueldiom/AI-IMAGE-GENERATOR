@@ -2,15 +2,23 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const https = require("https");
+const path = require("path"); // ✅ AJOUT
 
 const app = express();
+
+// ================= MIDDLEWARE =================
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => res.send("🚀 AI Image Generator API is running"));
+// ✅ SERVIR LE FRONTEND (IMPORTANT)
+app.use(express.static(path.join(__dirname)));
+
+// ================= ROUTE PRINCIPALE =================
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 
 // ================= STABLE HORDE =================
-// Gratuit, illimité, sans compte — clé anonyme "0000000000"
 const HORDE_KEY = process.env.STABLE_HORDE_KEY || "0000000000";
 
 function sleep(ms) {
@@ -23,8 +31,11 @@ function hordeRequest(options, body = null) {
       let data = "";
       res.on("data", c => data += c);
       res.on("end", () => {
-        try { resolve({ status: res.statusCode, json: JSON.parse(data) }); }
-        catch (e) { reject(new Error("Parse error: " + data.slice(0, 100))); }
+        try {
+          resolve({ status: res.statusCode, json: JSON.parse(data) });
+        } catch (e) {
+          reject(new Error("Parse error: " + data.slice(0, 100)));
+        }
       });
     });
     req.on("error", reject);
@@ -34,7 +45,6 @@ function hordeRequest(options, body = null) {
 }
 
 async function generateWithHorde(prompt) {
-  // Étape 1 — Soumettre la requête
   const submitBody = JSON.stringify({
     prompt: prompt,
     params: {
@@ -64,13 +74,12 @@ async function generateWithHorde(prompt) {
   }, submitBody);
 
   if (!submitRes.json.id) {
-    throw new Error("Horde submit failed: " + JSON.stringify(submitRes.json).slice(0, 100));
+    throw new Error("Horde submit failed");
   }
 
   const jobId = submitRes.json.id;
   console.log("Horde job ID:", jobId);
 
-  // Étape 2 — Polling jusqu'au résultat (max 3 minutes)
   for (let attempt = 0; attempt < 36; attempt++) {
     await sleep(5000);
 
@@ -78,29 +87,33 @@ async function generateWithHorde(prompt) {
       hostname: "stablehorde.net",
       path: `/api/v2/generate/check/${jobId}`,
       method: "GET",
-      headers: { "apikey": HORDE_KEY, "Client-Agent": "ai-image-generator:1.0" },
+      headers: {
+        "apikey": HORDE_KEY,
+        "Client-Agent": "ai-image-generator:1.0"
+      },
     });
 
     const check = checkRes.json;
-    console.log(`Horde status — done: ${check.done}, queue: ${check.queue_position}, wait: ${check.wait_time}s`);
 
     if (check.done) {
-      // Étape 3 — Récupérer le résultat
       const statusRes = await hordeRequest({
         hostname: "stablehorde.net",
         path: `/api/v2/generate/status/${jobId}`,
         method: "GET",
-        headers: { "apikey": HORDE_KEY, "Client-Agent": "ai-image-generator:1.0" },
+        headers: {
+          "apikey": HORDE_KEY,
+          "Client-Agent": "ai-image-generator:1.0"
+        },
       });
 
       const generations = statusRes.json.generations;
       if (!generations || generations.length === 0) {
-        throw new Error("Pas de génération dans la réponse Horde");
+        throw new Error("Pas d’image générée");
       }
 
-      // L image est en base64
       const imgBase64 = generations[0].img;
       const buffer = Buffer.from(imgBase64, "base64");
+
       return { buffer, mimeType: "image/webp" };
     }
 
@@ -109,29 +122,34 @@ async function generateWithHorde(prompt) {
     }
   }
 
-  throw new Error("Horde timeout — trop long, réessaie");
+  throw new Error("Timeout Stable Horde");
 }
 
-// ================= ROUTE =================
+// ================= ROUTE API =================
 app.post("/generate", async (req, res) => {
   const { prompt } = req.body;
-  if (!prompt) return res.status(400).json({ error: "Prompt requis" });
+
+  if (!prompt) {
+    return res.status(400).json({ error: "Prompt requis" });
+  }
 
   console.log("\nPrompt:", prompt);
-  console.log("⏳ Envoi à Stable Horde... (peut prendre 1-3 min)");
 
   try {
     const result = await generateWithHorde(prompt);
-    console.log("✅ Stable Horde OK");
+
     res.setHeader("Content-Type", result.mimeType);
     return res.send(result.buffer);
+
   } catch (err) {
-    console.log("❌ Horde failed:", err.message);
-    return res.status(502).json({ error: "Erreur Stable Horde: " + err.message });
+    console.log("❌ Erreur:", err.message);
+    return res.status(502).json({ error: err.message });
   }
 });
 
+// ================= SERVER =================
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-  console.log(`Serveur démarré sur le port ${PORT}`);
+  console.log(`🚀 Serveur démarré sur le port ${PORT}`);
 });
