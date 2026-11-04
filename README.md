@@ -1,126 +1,76 @@
-# 🎨 AI Image Generator
+# AI Image Generator
 
-Une application web complète permettant de générer des images à partir de descriptions textuelles (Text-to-Image) en utilisant plusieurs APIs d’intelligence artificielle avec un système de fallback intelligent.
+Application web qui transforme une description en images, en s'appuyant sur [Stable Horde](https://stablehorde.net), un réseau communautaire et gratuit de génération d'images.
 
----
+Démo : https://ai-image-generator-9679.onrender.com
+(hébergée sur l'offre gratuite de Render : le premier chargement peut prendre jusqu'à une minute)
 
-## 🚀 Aperçu du projet
+## Fonctionnalités
 
-AI Image Generator permet à l’utilisateur de :
+- Saisie d'une description, avec suggestion aléatoire parmi des exemples
+- Choix du modèle : **Automatique** (Stable Horde choisit un modèle disponible, souvent le plus rapide) ou **Deliberate**
+- Choix du format : carré (512 × 512), paysage (640 × 384) ou portrait (384 × 640)
+- Génération de 1 à 4 images, lancées l'une après l'autre
+- Une carte de chargement par image, remplacée par l'image ou par un message d'erreur clair
+- Téléchargement de chaque image (format WebP)
+- Thème clair ou sombre, mémorisé dans le navigateur
 
-- Entrer une description (prompt)
-- Générer une ou plusieurs images IA
-- Choisir différents modèles
-- Télécharger les images générées
-- Basculer entre thème clair et sombre
+## Architecture
 
-👉 Exemple de prompt :
-> "Un dragon dans une grotte en cristal"
+```
+Navigateur (public/ : HTML, CSS, JavaScript)
+   │  POST /generate { prompt, ratio, model }
+   ▼
+Serveur Node.js + Express (server.js)
+   │  1. soumet la tâche      POST /api/v2/generate/async
+   │  2. vérifie toutes les 5 s   GET /api/v2/generate/check/:id   (3 min maximum)
+   │  3. récupère l'image     GET /api/v2/generate/status/:id
+   ▼
+Stable Horde
+```
 
----
+Le serveur :
 
-## 🧠 Fonctionnalités
+- garde la clé Stable Horde côté serveur (le navigateur n'appelle que `/generate`) ;
+- valide les entrées (description de 500 caractères maximum, format et modèle limités à une liste connue) ;
+- convertit l'image reçue en base64 en binaire et la renvoie directement avec son type MIME ;
+- renvoie des messages d'erreur explicites : file d'attente trop longue, modèle indisponible, trop de demandes.
 
-- ✍️ Saisie de prompt personnalisé
-- 🎲 Génération de prompt aléatoire
-- 🤖 Sélection de modèles IA
-- 🖼️ Génération de plusieurs images
-- 📐 Choix du ratio (1:1, 16:9, 9:16)
-- 🖼️ Galerie avec chargement dynamique
-- ⬇️ Téléchargement d’images
-- 🌙 Mode clair / sombre (localStorage)
-- 🔄 Système de fallback multi-API
+Seul le dossier `public/` est servi au navigateur. Le CORS n'est pas activé, pour que d'autres sites ne puissent pas utiliser le quota du serveur.
 
----
+## Lancer le projet
 
-## 🏗️ Architecture
+Node.js 18 ou plus récent.
 
-Frontend (HTML, CSS, JS)
-↓
-Backend (Node.js + Express)
-↓
-APIs IA (Gemini, Pollinations, Stable Horde)
-
-
-
-### 🔐 Pourquoi cette architecture ?
-
-- Sécurité des clés API (backend uniquement)
-- Contournement des problèmes CORS
-- Meilleur contrôle des requêtes
-
----
-
-## ⚙️ Technologies utilisées
-
-- **Frontend** : HTML5, CSS3, JavaScript (ES6)
-- **Backend** : Node.js, Express
-- **APIs IA** :
-  - Google Gemini
-  - Pollinations AI
-  - Stable Horde
-- **Configuration** : dotenv
-
----
-
-## 📂 Structure du projet
-
-ai-image-generator/
-│
-├── server.js # Backend (API + logique IA)
-├── script.js # Frontend (logique JS)
-├── index.html # Interface utilisateur
-├── style.css # Design et thème
-├── .env # Clés API (non versionné)
-├── package.json # Dépendances
-└── node_modules/
-
-
-
----
-
-## 🔄 Fonctionnement
-
-1. L’utilisateur saisit un prompt
-2. Le frontend envoie une requête POST → `/generate`
-3. Le backend traite la demande :
-   - Essai 1 : Gemini
-   - Essai 2 : Pollinations
-   - Essai 3 : Stable Horde
-4. L’image est renvoyée au frontend
-5. Affichage dans la galerie
-
----
-
-## 🔁 Système de fallback
-
-| API | Rôle |
-|-----|------|
-| Gemini | Principal |
-| Pollinations | Fallback 1 |
-| Stable Horde | Fallback final |
-
-👉 Cela garantit que l’application fonctionne même si une API échoue.
-
----
-
-## ⚡ Stable Horde (Solution finale)
-
-- Gratuit et illimité
-- Basé sur un réseau communautaire
-- Fonctionne avec un système de polling :
-
-### Étapes :
-1. Soumission du job
-2. Vérification (polling)
-3. Récupération de l’image
-4. Conversion base64 → image
-
----
-
-## ▶️ Installation
-
-### 1. Cloner le projet
 ```bash
-git clone <repo_url>
-cd ai-image-generator
+npm install
+cp .env.example .env   # facultatif
+npm start              # http://localhost:3000
+```
+
+### Variables d'environnement
+
+| Variable | Rôle | Par défaut |
+| --- | --- | --- |
+| `STABLE_HORDE_KEY` | Clé API Stable Horde ([créer une clé gratuite](https://stablehorde.net/register)). Une clé personnelle donne une meilleure priorité dans la file d'attente. | clé anonyme `0000000000` |
+| `PORT` | Port du serveur | `3000` |
+
+## Déploiement sur Render
+
+- Build command : `npm install`
+- Start command : `npm start`
+- Variable d'environnement : `STABLE_HORDE_KEY`
+
+## Limites connues
+
+- Stable Horde est un réseau bénévole : avec la clé anonyme, une image peut prendre de quelques secondes à plusieurs minutes.
+- Si la file d'attente dépasse 3 minutes, la génération est abandonnée avec un message d'erreur.
+
+## Pistes d'évolution
+
+- Ajouter un second fournisseur pour prendre le relais quand la file d'attente est saturée
+- Afficher la position dans la file d'attente pendant la génération
+
+## Technologies
+
+Node.js, Express 5, JavaScript, HTML, CSS, API Stable Horde, Render.

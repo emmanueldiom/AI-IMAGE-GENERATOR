@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Image Generator</title>
+    <meta name="description" content="Générez des images à partir d'une description, avec Stable Horde." />
+    <!-- Linking Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27%3E%3Ctext y=%27.9em%27 font-size=%2790%27%3E%E2%9C%A8%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="logo-wrapper">
+          <div class="logo">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <h1>AI Image Generator</h1>
+        </div>
+        <button type="button" class="theme-toggle" aria-label="Changer de thème">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </header>
+
+      <div class="main-content">
+        <form action="#" class="prompt-form">
+          <!-- Prompt Container -->
+          <div class="prompt-container">
+            <textarea
+              class="prompt-input"
+              placeholder="Décris ton imagination en détail..."
+              aria-label="Description de l'image"
+              maxlength="500"
+              required
+              autofocus
+            ></textarea>
+            <button type="button" class="prompt-btn" aria-label="Suggérer une description">
+              <i class="fa-solid fa-dice"></i>
+            </button>
+          </div>
+          <!-- Pronmpt Actions/Buttons -->
+          <div class="prompt-actions">
+            <div class="select-wrapper">
+              <select class="custom-select" id="model-select" aria-label="Modèle" required>
+                <option value="auto" selected>Automatique</option>
+                <option value="deliberate">Deliberate</option>
+              </select>
+            </div>
+            <div class="select-wrapper">
+              <select class="custom-select" id="count-select" aria-label="Nombre d'images" required>
+                <option value="" selected disabled>Nombre d'images</option>
+                <option value="1">1 image</option>
+                <option value="2">2 images</option>
+                <option value="3">3 images</option>
+                <option value="4">4 images</option>
+              </select>
+            </div>
+            <div class="select-wrapper">
+              <select class="custom-select" id="ratio-select" aria-label="Format" required>
+                <option value="" selected disabled>Format</option>
+                <option value="1/1">Carré (1:1)</option>
+                <option value="16/9">Paysage (16:9)</option>
+                <option value="9/16">Portrait (9:16)</option>
+              </select>
+            </div>
+            <button type="submit" class="generate-btn">
+              <i class="fa-solid fa-wand-sparkles"></i>
+              Générer
+            </button>
+          </div>
+
+          <!-- Result Gallery Grid -->
+          <div class="gallery-grid" aria-live="polite">
+            <!-- <div class="img-card loading">
+                        <div class="status-container">
+                            <div class="spinner"></div>
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <p class="status-text">Generating.....</p>
+                        </div>
+                        <img src="images/test.png" class="result-img">
+                        <div class="img-overlay">
+                            <button class="img-download-btn">
+                                <i class="fa-solid fa-download"></i>
+                            </button>
+                        </div>
+                    </div> -->
+          </div>
+        </form>
+      </div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
